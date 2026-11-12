@@ -113,7 +113,7 @@ git -c core.autocrlf=false apply --check patches/fix.diff
 git -c core.autocrlf=false apply patches/fix.diff
 ```
 
-Патч изменяет `app.py` и два файла тестов. В поиске используются параметры `?`,
+Патч изменяет `app.py`. В поиске используются параметры `?`,
 а просмотр чужой заметки возвращает HTTP 403. Флаг `core.autocrlf=false`
 сохраняет переводы строк и действует только на эту команду.
 
@@ -138,23 +138,10 @@ git -c core.autocrlf=false apply --reverse --check patches/fix.diff
 git -c core.autocrlf=false apply --reverse patches/fix.diff
 ```
 
-## Проверки и результаты
-
-```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-```
-
-В исходной версии тесты подтверждают воспроизведение учебных уязвимостей.
-После патча они проверяют блокировку тех же атак. В обеих версиях проверяются
-также вход, обычный поиск, свои заметки, выход и сохранность данных.
-Тесты используют временную базу.
-
-Выполнены 15 тестов до патча и 15 после. Неизменённый `exploit.py` проверен
-для обоих аккаунтов в двух состояниях. Применение и отмена патча проверены.
+## Результаты демонстрации
 
 - [Вывод до исправления](examples/exploit-vulnerable.txt).
 - [Вывод после исправления](examples/exploit-fixed.txt).
-- [Итог проверки патча](examples/patch-verification.txt).
 
 Коды завершения `exploit.py`: `0` — результат совпал с ожиданием,
 `1` — не совпал, `2` — ошибка выполнения.
@@ -167,8 +154,7 @@ git -c core.autocrlf=false apply --reverse patches/fix.diff
 | `db.py`, `schema.sql` | Подключение SQLite, структура и учебные данные |
 | `templates/` | HTML-шаблоны |
 | `exploit.py` | Демонстрация двух уязвимостей по HTTP |
-| `patches/fix.diff` | Исправления приложения и тестов |
-| `tests/` | Проверки приложения и отдельного HTTP-клиента |
+| `patches/fix.diff` | Исправления двух уязвимостей приложения |
 | `examples/` | Фактические результаты выполнения |
 | `.vscode/` | Конфигурации запуска приложения и скрипта |
 | `docs/learning-notes.md` | Подробные пояснения к коду и этапам работы |
