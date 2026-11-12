@@ -1,0 +1,7 @@
+.venv/
+.setup-temp/
+instance/
+__pycache__/
+*.py[cod]
+.env
+*.log

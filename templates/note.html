@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}{{ note['title'] }} — учебные заметки{% endblock %}
+
+{% block content %}
+    <h1>{{ note['title'] }}</h1>
+    <p class="note-content">{{ note['content'] }}</p>
+    <p><a href="{{ url_for('notes') }}">Вернуться к заметкам</a></p>
+{% endblock %}

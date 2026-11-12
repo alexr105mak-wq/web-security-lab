@@ -1,0 +1,7 @@
+git apply --check: PASS on original project
+BEFORE PATCH: 15 tests passed
+AFTER PATCH: 15 tests passed
+Reverse patch restores original files: PASS
+Original vulnerable sources preserved: PASS
+Same exploit.py: both accounts VULNERABLE before, BLOCKED after
+Patch SHA256: 5368b8b8b092fb25b2a7ef7a4d1d8ef95a724c8572aaf1769617663dbb81b587

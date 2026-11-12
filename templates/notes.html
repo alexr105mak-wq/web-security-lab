@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Мои заметки{% endblock %}
+
+{% block content %}
+    <h1>Мои заметки</h1>
+    <form action="{{ url_for('notes') }}" method="get">
+        <label for="q">Поиск по названию и тексту:</label>
+        <input type="text" id="q" name="q" value="{{ query }}" placeholder="Например, план">
+        <button type="submit">Найти</button>
+    </form>
+    <p><a href="{{ url_for('notes') }}">Показать все мои заметки</a></p>
+
+    {% if error %}
+        <p class="error" role="alert">{{ error }}</p>
+    {% else %}
+        <ul>
+            {% for note in notes %}
+                <li><a href="{{ url_for('note_detail', note_id=note['id']) }}">{{ note['title'] }}</a></li>
+            {% else %}
+                <li>Заметки не найдены.</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Лабораторная № 2 — главная{% endblock %}
+
+{% block content %}
+    <h1>Учебные заметки</h1>
+    <p>Войди под учебной учётной записью, чтобы открыть свои заметки и поиск.</p>
+    {% if g.user %}
+        <p><a href="{{ url_for('notes') }}">Открыть мои заметки</a></p>
+    {% else %}
+        <p><a href="{{ url_for('login') }}">Перейти ко входу</a></p>
+    {% endif %}
+
+    <h2>Первое упражнение: приветствие</h2>
+    <p>Введи имя и нажми кнопку, чтобы получить приветствие.</p>
+    <form action="/hello" method="get">
+        <label for="name">Твоё имя:</label>
+        <input type="text" id="name" name="name" placeholder="Например, Саша" required>
+        <button type="submit">Поздороваться</button>
+    </form>
+    <p><a href="/hello?name=Саша">Пример запроса с именем в адресе</a></p>
+{% endblock %}

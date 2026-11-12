@@ -1,0 +1,122 @@
+diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@ -89,13 +89,14 @@
+         return redirect(url_for("login"))
+ 
+     query = request.args.get("q", "")
+-    # Намеренная учебная SQL-инъекция: ввод пользователя становится частью SQL.
++    # Значения передаются отдельно от SQL и не меняют структуру запроса.
++    pattern = f"%{query}%"
+     sql = (
+-        f"SELECT id, title FROM notes WHERE owner_id = {g.user['id']} "
+-        f"AND (title LIKE '%{query}%' OR content LIKE '%{query}%') ORDER BY id"
++        "SELECT id, title FROM notes "
++        "WHERE owner_id = ? AND (title LIKE ? OR content LIKE ?) ORDER BY id"
+     )
+     try:
+-        user_notes = get_db().execute(sql).fetchall()
++        user_notes = get_db().execute(sql, (g.user["id"], pattern, pattern)).fetchall()
+     except sqlite3.Error:
+         return render_template(
+             "notes.html", notes=[], query=query,
+@@ -116,7 +117,10 @@
+     if note is None:
+         abort(404)
+ 
+-    # Намеренная учебная IDOR: вход проверен, но владелец заметки не проверяется.
++    # Вход в аккаунт не даёт права читать заметки другого пользователя.
++    if note["owner_id"] != g.user["id"]:
++        abort(403)
++
+     return render_template("note.html", note=note)
+ 
+ 
+diff --git a/tests/test_app.py b/tests/test_app.py
+--- a/tests/test_app.py
++++ b/tests/test_app.py
+@@ -67,19 +67,19 @@
+         self.assertNotIn("План Алисы", notes)
+         self.assertIn("BOB-DEMO-73", self.client.get("/notes/4").get_data(as_text=True))
+ 
+-    def test_intentional_idor_allows_alice_to_read_bob_note(self):
++    def test_idor_cannot_read_bob_note_as_alice(self):
+         self.login()
+         response = self.client.get("/notes/4")
+-        self.assertEqual(response.status_code, 200)
+-        self.assertIn("BOB-DEMO-73", response.get_data(as_text=True))
++        self.assertEqual(response.status_code, 403)
++        self.assertNotIn("BOB-DEMO-73", response.get_data(as_text=True))
+         with self.client.session_transaction() as session:
+             self.assertEqual(session["user_id"], 1)
+ 
+-    def test_intentional_idor_allows_bob_to_read_alice_note(self):
++    def test_idor_cannot_read_alice_note_as_bob(self):
+         self.login("bob", "bob123")
+         response = self.client.get("/notes/2")
+-        self.assertEqual(response.status_code, 200)
+-        self.assertIn("ALICE-DEMO-42", response.get_data(as_text=True))
++        self.assertEqual(response.status_code, 403)
++        self.assertNotIn("ALICE-DEMO-42", response.get_data(as_text=True))
+         with self.client.session_transaction() as session:
+             self.assertEqual(session["user_id"], 2)
+ 
+@@ -89,20 +89,20 @@
+         self.assertIn("Личная заметка Алисы", match.get_data(as_text=True))
+         self.assertNotIn("План Алисы", match.get_data(as_text=True))
+ 
+-    def test_intentional_sql_injection_exposes_other_users_titles(self):
++    def test_sql_injection_does_not_expose_other_users_titles(self):
+         self.login()
+         injection = self.client.get("/notes", query_string={"q": "') OR 1=1 -- "})
+         self.assertEqual(injection.status_code, 200)
+         html = injection.get_data(as_text=True)
+-        self.assertIn("План Алисы", html)
+-        self.assertIn("План Боба", html)
+-        self.assertIn("Личная заметка Боба", html)
++        self.assertIn("Заметки не найдены.", html)
++        self.assertNotIn("План Боба", html)
++        self.assertNotIn("Личная заметка Боба", html)
+ 
+-    def test_malformed_search_returns_controlled_error(self):
++    def test_quotes_in_search_are_treated_as_text(self):
+         self.login()
+         response = self.client.get("/notes", query_string={"q": "';"})
+-        self.assertEqual(response.status_code, 400)
+-        self.assertIn("Ошибка поискового SQL-запроса.", response.get_data(as_text=True))
++        self.assertEqual(response.status_code, 200)
++        self.assertIn("Заметки не найдены.", response.get_data(as_text=True))
+ 
+     def test_post_requires_token_and_logout_ends_session(self):
+         response = self.client.post("/login", data={"username": "alice", "password": "alice123"})
+diff --git a/tests/test_exploit.py b/tests/test_exploit.py
+--- a/tests/test_exploit.py
++++ b/tests/test_exploit.py
+@@ -46,19 +46,19 @@
+             cwd=project,
+         )
+ 
+-    def test_script_demonstrates_both_attacks_for_both_accounts(self):
++    def test_script_confirms_both_fixes_for_both_accounts(self):
+         for username, foreign_marker in [("alice", "BOB-DEMO-73"), ("bob", "ALICE-DEMO-42")]:
+             with self.subTest(username=username):
+-                result = self.run_script("--account", username)
++                result = self.run_script("--account", username, "--expect", "fixed")
+                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+-                self.assertIn(foreign_marker, result.stdout)
+-                self.assertIn("[RESULT] SQLi=VULNERABLE; IDOR=VULNERABLE", result.stdout)
+-                self.assertIn("[EXPECT] vulnerable: PASS", result.stdout)
++                self.assertNotIn(foreign_marker, result.stdout)
++                self.assertIn("[RESULT] SQLi=BLOCKED; IDOR=BLOCKED", result.stdout)
++                self.assertIn("[EXPECT] fixed: PASS", result.stdout)
+ 
+-    def test_fixed_expectation_rejects_vulnerable_application(self):
+-        result = self.run_script("--expect", "fixed")
++    def test_vulnerable_expectation_rejects_fixed_application(self):
++        result = self.run_script("--expect", "vulnerable")
+         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+-        self.assertIn("[EXPECT] fixed: FAIL", result.stdout)
++        self.assertIn("[EXPECT] vulnerable: FAIL", result.stdout)
+ 
+     def test_failed_login_is_error_not_successful_blocking(self):
+         with app.app_context():

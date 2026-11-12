@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Вход — учебные заметки{% endblock %}
+
+{% block content %}
+    <h1>Вход в учебные заметки</h1>
+    {% if error %}
+        <p class="error" role="alert">{{ error }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('login') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+
+        <label for="username">Логин:</label>
+        <input type="text" id="username" name="username" value="{{ username }}" autocomplete="username" required>
+
+        <label for="password">Пароль:</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+
+        <p><button type="submit">Войти</button></p>
+    </form>
+
+    <h2>Учебные аккаунты</h2>
+    <ul>
+        <li>Логин: <code>alice</code>, пароль: <code>alice123</code></li>
+        <li>Логин: <code>bob</code>, пароль: <code>bob123</code></li>
+    </ul>
+    <p>У каждого пользователя две свои заметки. Все данные вымышленные.</p>
+{% endblock %}
